@@ -554,3 +554,168 @@ CREATE OR ALTER PROC [dbo].[SP_AtualizarAtivo](
 
 	END
 GO
+
+--Proc select progresso curso
+CREATE OR ALTER PROC [dbo].[SP_SelProcessoCurso](
+	@IdUsuarioAcesso		INT,
+	@IdUsuario				INT = NULL,
+	@IdCurso				INT = NULL
+	)
+
+	AS
+
+	/*
+
+		DOCUMENTAÇÃO
+		ARQUIVO...............:	SistemaDeApredizagem.sql
+		OBJETIVO..............:	Selecionar o progresso do curso
+		AUTOR.................:	SMN - JOÃO EMANOEL
+		DATA..................: 02/04/2024
+								EXEC [dbo].[SP_SelProcessoCurso] 1, 2, NULL SELECT * FROM PROGRESSOCURSO SELECT * FROM CURSO
+
+	*/
+
+	BEGIN
+
+		--Declarando variáveis
+		DECLARE @DataHoraAutenticacao			DATETIME,
+				@TipoUsuario					INT
+
+		--Verificando se o UsuarioAcesso não é administrador
+		SET @TipoUsuario = (SELECT IdTipoUsuario
+									FROM Usuario
+									WHERE Id = @IdUsuarioAcesso)
+
+		--Verificando se o UsuarioAcesso não existe
+		IF NOT EXISTS (SELECT Id
+							FROM Usuario
+							WHERE Id = @IdUsuarioAcesso)
+
+						THROW 550000, 'Erro: UsuárioAcesso inexistente.', 1;
+
+		--Adicionando valor a variável
+		SET @DataHoraAutenticacao = (SELECT TOP 1 a.DataHoraAutenticacao
+										FROM Usuario u
+										JOIN Autenticacao a ON a.IdUsuario = u.Id
+										WHERE u.Id = @IdUsuarioAcesso
+										ORDER BY a.DataHoraAutenticacao DESC)
+
+		--Verificandos se a autenticação foi expirada
+		IF CONVERT(TIME, (GETDATE())) >= CONVERT(TIME, DATEADD(HOUR, 6, @DataHoraAutenticacao)) OR CONVERT(DATE, @DataHoraAutenticacao) <> CONVERT(DATE,(GETDATE()))
+
+			THROW 550000, 'Erro: autenticação expirada.', 1;
+
+		ELSE
+			
+			BEGIN
+
+				--Verificando se é um aluno que quer ver o progresso do curso
+				IF @TipoUsuario = 2
+
+					BEGIN
+
+					--Verificando se o IdUsuario é nulo
+					IF @IdUsuario IS NULL OR @IdUsuario <> @IdUsuarioAcesso
+
+						THROW 550000, 'Erro: IdUsuario não pode ser nulo, pois, você é um aluno.', 1;
+
+					ELSE
+					
+						BEGIN
+							--Verificando se o campo NomeCurso estar preenchido
+							IF @IdCurso IS NOT NULL
+
+							BEGIN
+									--Visualizar o progresso do 
+									SELECT	pc.Progresso,
+											pc.FeedbackProfessor,
+											pc.AvaliacaoDesempenho,
+											pc.DataUltimaAvaliacao
+										FROM Usuario u
+										JOIN ProgressoCurso pc ON pc.IdUsuario = u.Id
+										WHERE pc.IdCurso = @IdCurso AND u.Id = @IdUsuario
+							END
+				
+								ELSE
+
+							BEGIN
+
+										SELECT pc.Progresso,
+											   pc.FeedbackProfessor,
+											   pc.AvaliacaoDesempenho,
+											   pc.DataUltimaAvaliacao
+										FROM Usuario u
+										JOIN ProgressoCurso pc ON pc.IdUsuario = u.Id
+										WHERE PC.IdUsuario = @IdUsuario
+
+
+							END
+					
+
+						
+
+					END
+
+			END
+
+							ELSE 
+			
+							BEGIN
+								--Verificando se o campo NomeCurso estar preenchido
+								IF @IdCurso IS NOT NULL AND @IdUsuario IS NULL
+				
+								BEGIN
+
+									SELECT	pc.Progresso,
+											pc.FeedbackProfessor,
+											pc.AvaliacaoDesempenho,
+											pc.DataUltimaAvaliacao
+										FROM Usuario u
+										JOIN ProgressoCurso pc ON pc.IdUsuario = u.Id
+										WHERE pc.IdCurso = @IdCurso
+
+								END
+								--Verificando se o campo NomeCurso e IdUsuario estar preenchido
+								IF @IdCurso IS NOT NULL AND @IdUsuario IS NOT NULL
+
+								BEGIN
+										SELECT	pc.Progresso,
+											pc.FeedbackProfessor,
+											pc.AvaliacaoDesempenho,
+											pc.DataUltimaAvaliacao
+										FROM Usuario u
+										JOIN ProgressoCurso pc ON pc.IdUsuario = u.Id
+										WHERE pc.IdCurso = @IdCurso AND u.Id = @IdUsuario
+
+								END
+								--Verificando se o campo IdUsuario estar preenchido
+								IF @IdUsuario IS NOT NULL AND @IdCurso IS NULL
+
+								BEGIN
+										SELECT	pc.Progresso,
+											pc.FeedbackProfessor,
+											pc.AvaliacaoDesempenho,
+											pc.DataUltimaAvaliacao
+										FROM Usuario u
+										JOIN ProgressoCurso pc ON pc.IdUsuario = u.Id
+										WHERE u.Id = @IdUsuario
+								END
+
+								IF @IdUsuario IS NULL AND @IdCurso IS NULL
+
+								BEGIN
+
+										SELECT	pc.Progresso,
+											pc.FeedbackProfessor,
+											pc.AvaliacaoDesempenho,
+											pc.DataUltimaAvaliacao
+										FROM Usuario u
+										JOIN ProgressoCurso pc ON pc.IdUsuario = u.Id
+								END
+
+							
+							END
+							END
+		
+				END
+GO
