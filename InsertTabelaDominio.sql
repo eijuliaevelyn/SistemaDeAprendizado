@@ -70,7 +70,7 @@ INSERT INTO MetodoPagamento (MetodoPagamento)
 	VALUES	('Pix'),
 			('Cartão')
 
-INSERT INTO TipoAssinatura(MetodoPagamento)
+INSERT INTO TipoAssinatura(TipoAssinatura, DescricaoTipo, TaxaAssinatura)
 	VALUES	('Básica', 'Assinatura Básica', 0.00),
 			('Intermediária', 'Assinatura Intermediária', 9.99),
 			('Avançada', 'Assinatura Avançada', 19.99)
